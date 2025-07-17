@@ -15,20 +15,19 @@ type Connection struct {
 	// 当前连接的关闭状态
 	isClosed bool
 
-	// 该连接的处理方法api
-	handleAPI tinface.HandFunc
+	Router tinface.IRouter
 
 	// 告知该链接已经退出/停止的channel
 	ExitBuffChan chan bool
 }
 
 // NewConntion 创建连接的方法
-func NewConntion(conn *net.TCPConn, connID uint32, callback_api tinface.HandFunc) *Connection {
+func NewConntion(conn *net.TCPConn, connID uint32, router tinface.IRouter) *Connection {
 	c := &Connection{
 		Conn:         conn,
 		ConnID:       connID,
 		isClosed:     false,
-		handleAPI:    callback_api,
+		Router:       router,
 		ExitBuffChan: make(chan bool, 1),
 	}
 
@@ -44,18 +43,23 @@ func (c *Connection) StartReader() {
 	for {
 		// 读取客户端数据
 		buf := make([]byte, 512)
-		cnt, err := c.Conn.Read(buf)
+		_, err := c.Conn.Read(buf)
 		if err != nil {
 			fmt.Println("recv buf err ", err)
 			c.ExitBuffChan <- true
 			continue
 		}
-		// 调用当前连接所绑定的handleAPI
-		if err = c.handleAPI(c.Conn, buf, cnt); err != nil {
-			fmt.Println("ConnID = ", c.ConnID, " handle is error", err)
-			c.ExitBuffChan <- true
-			return
+		req := Request{
+			conn: c,
+			data: buf,
 		}
+
+		// 调用当前连接所绑定的handleAPI
+		go func(req tinface.IRequest) {
+			c.Router.PreHandle(req)
+			c.Router.Handle(req)
+			c.Router.PostHandle(req)
+		}(&req)
 	}
 }
 

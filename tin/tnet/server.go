@@ -15,6 +15,7 @@ type Server struct {
 	IPVersion string
 	IP        string
 	Port      int
+	Router    tinface.IRouter
 }
 
 // CallBackToClient 定义当前客户端链接的handle api
@@ -63,7 +64,7 @@ func (s *Server) Start() {
 			// 3.2 TODO Server.Start() 设置服务器最大连接控制,如果超过最大连接，那么则关闭此新的连接
 
 			// 3.3 TODO Server.Start() 处理该新连接请求的 业务 方法， 此时应该有 handler 和 conn是绑定的
-			dealConn := NewConntion(conn, cid, CallBackToClient)
+			dealConn := NewConntion(conn, cid, s.Router)
 			cid++
 			go dealConn.Start()
 		}
@@ -87,6 +88,10 @@ func (s *Server) Serve() {
 	}
 }
 
+func (s *Server) AddRouter(router tinface.IRouter) {
+	s.Router = router
+}
+
 /*
 创建一个服务器句柄
 */
@@ -96,6 +101,7 @@ func NewServer(name string) tinface.IServer {
 		IPVersion: "tcp4",
 		IP:        "0.0.0.0",
 		Port:      7777,
+		Router:    nil,
 	}
 
 	return s
