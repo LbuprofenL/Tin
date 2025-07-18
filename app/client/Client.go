@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"time"
+
+	"github.com/ibuprofen/Tin/tnet"
 )
 
 func main() {
@@ -18,20 +21,40 @@ func main() {
 	}
 
 	for {
-		_, err := conn.Write([]byte("hahaha"))
+		dp := tnet.NewDataPack()
+		msg, err := dp.Pack(tnet.NewMessage(0, []byte("Zinx V0.5 Client Test Message")))
+		if err != nil {
+			fmt.Println("pack error msg id = 0")
+			return
+		}
+
+		_, err = conn.Write(msg)
 		if err != nil {
 			fmt.Println("write error err ", err)
 			return
 		}
 
-		buf := make([]byte, 512)
-		cnt, err := conn.Read(buf)
+		dp = tnet.NewDataPack()
+		headLen := dp.GetHeadLen()
+		buf := make([]byte, headLen)
+		if _, err = io.ReadFull(conn, buf); err != nil {
+			fmt.Println("read head err ", err)
+			break
+		}
+		msgHead, err := dp.Unpack(buf)
 		if err != nil {
-			fmt.Println("read buf error ")
+			fmt.Println("unpack error msg id = ", msgHead.GetMsgId())
 			return
 		}
-
-		fmt.Printf(" server call back : %s, cnt = %d\n", buf, cnt)
+		if msgHead.GetDataLen() > 0 {
+			msg := msgHead.(*tnet.Message)
+			data := make([]byte, msg.GetDataLen())
+			if _, err = io.ReadFull(conn, data); err != nil {
+				fmt.Println("read data err ", err)
+				return
+			}
+			fmt.Println("==> Recv Msg: ID=", msg.ID, ", len=", msg.DataLen, ", data=", string(data))
+		}
 
 		time.Sleep(1 * time.Second)
 	}

@@ -1,7 +1,9 @@
 package tnet
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net"
 
 	"github.com/ibuprofen/Tin/tinface"
@@ -41,17 +43,33 @@ func (c *Connection) StartReader() {
 	defer c.Stop()
 
 	for {
-		// 读取客户端数据
-		buf := make([]byte, 512)
-		_, err := c.Conn.Read(buf)
-		if err != nil {
-			fmt.Println("recv buf err ", err)
-			c.ExitBuffChan <- true
+		// 拆包
+		dp := &DataPack{}
+
+		headLen := dp.GetHeadLen()
+		buf := make([]byte, headLen)
+		if _, err := io.ReadFull(c.GetTCPConnection(), buf); err != nil {
+			fmt.Println("read head err ", err)
 			continue
+		}
+		// 拆包, 得到msgID和dataLen
+		msg, err := dp.Unpack(buf)
+		if err != nil {
+			fmt.Println("unpack err ", err)
+			continue
+		}
+		// 根据dataLen再读取data
+		if msg.GetDataLen() > 0 {
+			data := make([]byte, msg.GetDataLen())
+			if _, err := io.ReadFull(c.GetTCPConnection(), data); err != nil {
+				fmt.Println("read data err ", err)
+				continue
+			}
+			msg.SetData(data)
 		}
 		req := Request{
 			conn: c,
-			data: buf,
+			msg:  msg,
 		}
 
 		// 调用当前连接所绑定的handleAPI
@@ -61,6 +79,28 @@ func (c *Connection) StartReader() {
 			c.Router.PostHandle(req)
 		}(&req)
 	}
+}
+
+// SendMsg 发送消息给客户端
+func (c *Connection) SendMsg(msgID uint32, data []byte) error {
+	if c.isClosed {
+		return errors.New("connection is closed")
+	}
+
+	dp := &DataPack{}
+	msg, err := dp.Pack(NewMessage(msgID, data))
+	if err != nil {
+		fmt.Println("Pack error msg id = ", msgID)
+		return errors.New("Pack error msg ")
+	}
+	_, err = c.Conn.Write(msg)
+	if err != nil {
+		fmt.Println("send msg err ", err)
+		c.ExitBuffChan <- true
+		return errors.New("conn Write error")
+	}
+	fmt.Printf("send msg to client[%s] success, msgID: %d, dataLen: %d\n", c.RemoteAddr().String(), msgID, len(data))
+	return nil
 }
 
 // Start 启动连接

@@ -4,7 +4,7 @@ import "github.com/ibuprofen/Tin/tinface"
 
 type Request struct {
 	conn tinface.IConnection
-	data []byte
+	msg  tinface.IMessage
 }
 
 func (r *Request) GetConnection() tinface.IConnection {
@@ -12,5 +12,9 @@ func (r *Request) GetConnection() tinface.IConnection {
 }
 
 func (r *Request) GetData() []byte {
-	return r.data
+	return r.msg.GetData()
+}
+
+func (r *Request) GetMsgID() uint32 {
+	return r.msg.GetMsgId()
 }
