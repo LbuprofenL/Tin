@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/ibuprofen/Tin/tin/tinface"
-	"github.com/ibuprofen/Tin/tin/tnet"
+	"github.com/ibuprofen/Tin/tinface"
+	"github.com/ibuprofen/Tin/tnet"
 )
 
 // ping test 自定义路由
@@ -42,7 +42,7 @@ func (pr *PingRouter) PostHandle(request tinface.IRequest) {
 // Server 模块的测试函数
 func main() {
 	// 1 创建一个server 句柄 s
-	s := tnet.NewServer("[tin V0.3]")
+	s := tnet.NewServer()
 
 	s.AddRouter(&PingRouter{})
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/ibuprofen/Tin/tin/tinface"
+	"github.com/ibuprofen/Tin/tinface"
 )
 
 type Connection struct {

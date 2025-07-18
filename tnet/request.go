@@ -1,6 +1,6 @@
 package tnet
 
-import "github.com/ibuprofen/Tin/tin/tinface"
+import "github.com/ibuprofen/Tin/tinface"
 
 type Request struct {
 	conn tinface.IConnection

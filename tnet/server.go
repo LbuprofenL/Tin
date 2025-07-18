@@ -6,7 +6,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/ibuprofen/Tin/tin/tinface"
+	"github.com/ibuprofen/Tin/tinface"
+	"github.com/ibuprofen/Tin/utils"
 )
 
 // iServer 接口实现，定义一个Server服务类
@@ -33,6 +34,10 @@ func CallBackToClient(conn *net.TCPConn, data []byte, cnt int) error {
 
 func (s *Server) Start() {
 	fmt.Println("[START] Server is starting...")
+	fmt.Printf("[Tin] Version: %s, MaxConn: %d,  MaxPackageSize: %d\n",
+		utils.GlobalObject.Version,
+		utils.GlobalObject.MaxConn,
+		utils.GlobalObject.MaxPackageSize)
 	// 开启一个go去做服务端Linster业务
 	go func() {
 		// 1 获取一个TCP的Addr
@@ -92,15 +97,15 @@ func (s *Server) AddRouter(router tinface.IRouter) {
 	s.Router = router
 }
 
-/*
-创建一个服务器句柄
-*/
-func NewServer(name string) tinface.IServer {
+// NewServer 创建一个服务器句柄
+func NewServer() tinface.IServer {
+	utils.GlobalObject.Reload()
+
 	s := &Server{
-		Name:      name,
+		Name:      utils.GlobalObject.Name,
 		IPVersion: "tcp4",
-		IP:        "0.0.0.0",
-		Port:      7777,
+		IP:        utils.GlobalObject.Host,
+		Port:      utils.GlobalObject.TCPPort,
 		Router:    nil,
 	}
 
