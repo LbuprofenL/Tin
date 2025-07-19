@@ -17,19 +17,19 @@ type Connection struct {
 	// 当前连接的关闭状态
 	isClosed bool
 
-	Router tinface.IRouter
+	Handler tinface.IMsgHandler
 
 	// 告知该链接已经退出/停止的channel
 	ExitBuffChan chan bool
 }
 
 // NewConntion 创建连接的方法
-func NewConntion(conn *net.TCPConn, connID uint32, router tinface.IRouter) *Connection {
+func NewConntion(conn *net.TCPConn, connID uint32, handler tinface.IMsgHandler) *Connection {
 	c := &Connection{
 		Conn:         conn,
 		ConnID:       connID,
 		isClosed:     false,
-		Router:       router,
+		Handler:      handler,
 		ExitBuffChan: make(chan bool, 1),
 	}
 
@@ -73,11 +73,7 @@ func (c *Connection) StartReader() {
 		}
 
 		// 调用当前连接所绑定的handleAPI
-		go func(req tinface.IRequest) {
-			c.Router.PreHandle(req)
-			c.Router.Handle(req)
-			c.Router.PostHandle(req)
-		}(&req)
+		go c.Handler.DoMsgHandler(&req)
 	}
 }
 
