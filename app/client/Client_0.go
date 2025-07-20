@@ -26,7 +26,7 @@ func main() {
 	for {
 		// 发封包message消息
 		dp := tnet.NewDataPack()
-		msg, _ := dp.Pack(tnet.NewMessage(0, []byte("Tin V0.6 Client0 Test Message")))
+		msg, _ := dp.Pack(tnet.NewMessage(0, []byte("Tin V0.7 Client0 Test Message")))
 		_, err = conn.Write(msg)
 		if err != nil {
 			fmt.Println("write error err ", err)
