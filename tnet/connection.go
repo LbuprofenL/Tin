@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"github.com/ibuprofen/Tin/tinface"
+	"github.com/ibuprofen/Tin/utils"
 )
 
 type Connection struct {
@@ -75,9 +76,13 @@ func (c *Connection) StartReader() {
 			conn: c,
 			msg:  msg,
 		}
-
-		// 调用当前连接所绑定的handleAPI
-		go c.Handler.DoMsgHandler(&req)
+		if utils.GlobalObject.WorkerPoolSize > 0 {
+			// 已经启动工作池机制，将消息交给Worker处理
+			c.Handler.SendMsgToTaskQueue(&req)
+		} else {
+			// 从绑定好的消息和对应的处理方法中执行对应的Handle方法
+			go c.Handler.DoMsgHandler(&req)
+		}
 	}
 }
 

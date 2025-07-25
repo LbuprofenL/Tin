@@ -5,15 +5,20 @@ import (
 	"strconv"
 
 	"github.com/ibuprofen/Tin/tinface"
+	"github.com/ibuprofen/Tin/utils"
 )
 
 type MsgHandler struct {
-	Apis map[uint32]tinface.IRouter
+	Apis           map[uint32]tinface.IRouter
+	WorkerPoolSize uint32
+	TaskQueue      []chan tinface.IRequest
 }
 
 func NewMsgHandler() *MsgHandler {
 	return &MsgHandler{
-		Apis: make(map[uint32]tinface.IRouter),
+		Apis:           make(map[uint32]tinface.IRouter),
+		WorkerPoolSize: utils.GlobalObject.WorkerPoolSize,
+		TaskQueue:      make([]chan tinface.IRequest, utils.GlobalObject.WorkerPoolSize),
 	}
 }
 
@@ -36,4 +41,27 @@ func (mh *MsgHandler) AddRouter(msgID uint32, router tinface.IRouter) {
 	// 2 添加msg与api的绑定关系
 	mh.Apis[msgID] = router
 	fmt.Println("Add api msgId = ", msgID)
+}
+
+func (mh *MsgHandler) StartWorkerPool() {
+	for i := 0; i < int(mh.WorkerPoolSize); i++ {
+		mh.TaskQueue[i] = make(chan tinface.IRequest, 4096)
+		go mh.StartOneWorker(i, mh.TaskQueue[i])
+	}
+}
+
+func (mh *MsgHandler) StartOneWorker(workerID int, taskQueue chan tinface.IRequest) {
+	fmt.Println("[Worker] Worker ID = ", workerID, " is started.")
+	for {
+		select {
+		case req := <-taskQueue:
+			mh.DoMsgHandler(req)
+		}
+	}
+}
+
+func (mh *MsgHandler) SendMsgToTaskQueue(req tinface.IRequest) {
+	workerID := req.GetConnection().GetConnID() % mh.WorkerPoolSize
+	fmt.Println("Add ConnID=", req.GetConnection().GetConnID(), " request msgID=", req.GetMsgID(), " to workerID=", workerID)
+	mh.TaskQueue[workerID] <- req
 }

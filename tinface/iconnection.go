@@ -17,6 +17,3 @@ type IConnection interface {
 	// 发送数据，将数据发送给远程的客户端
 	SendMsg(msgID uint32, data []byte) error
 }
-
-// HandFunc 定义一个统一处理链接业务的接口
-type HandFunc func(*net.TCPConn, []byte, int) error
